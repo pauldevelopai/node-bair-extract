@@ -20,22 +20,46 @@
     loadExtractions();
   }
 
-  // ─── Extraction (Phase 1: wired to the stub; the real engine lands Phase 3) ──
+  // ─── Extraction ──────────────────────────────────────────────────────────
   async function runExtract() {
     const input = $('#pdf');
     const status = $('#extract-status');
     const file = input.files && input.files[0];
     if (!file) { status.textContent = 'Choose a PDF first.'; return; }
-    $('#extract-btn').disabled = true; status.textContent = 'Working…';
+    $('#extract-btn').disabled = true; status.textContent = 'Working… (reading in code, then checking it twice)';
     try {
       const form = new FormData();
       form.append('pdf', file, file.name);
       const r = await fetch('api/extract', { method: 'POST', body: form }).then((x) => x.json());
       if (!r.ok) { status.textContent = r.message || 'Could not extract.'; return; }
-      status.textContent = 'Done.';
+      status.textContent = '';
+      renderResult(r, file.name);
       loadExtractions();
     } catch (e) { status.textContent = 'Network error: ' + e.message; }
     finally { $('#extract-btn').disabled = false; }
+  }
+
+  // Show the just-finished run: the Excel download (the whole point) + the
+  // shortlist of cells to check. The flags are a feature, not an error.
+  function renderResult(r, filename) {
+    const card = $('#result-card'); const box = $('#result');
+    if (!card || !box) return;
+    const flags = r.flags || [];
+    const meta = [escapeHtml(filename || 'document'),
+      r.fileType ? (r.fileType === 'scan' ? 'scanned (highest-risk)' : 'text') : '',
+      (r.rowCount != null ? r.rowCount + ' rows' : ''),
+      r.needKey ? 'no AI key — basic code extraction' : ''].filter(Boolean).join(' · ');
+    const download = r.xlsxUrl
+      ? `<a class="primary" id="dl-xlsx" href="${r.xlsxUrl}" download style="display:inline-block;text-decoration:none;margin:2px 0 10px">⬇ Download Excel</a>`
+      : '';
+    const flagHtml = flags.length
+      ? `<p style="margin:.4rem 0 .3rem"><strong>${flags.length} cell${flags.length === 1 ? '' : 's'} to check</strong> — open the original only for these:</p>
+         <ul class="flaglist">${flags.slice(0, 50).map((f) =>
+            `<li><span class="sev sev-${escapeHtml(f.severity || '')}">${escapeHtml(String(f.kind || '').replace(/_/g, ' '))}</span> <b>${escapeHtml(f.where || '')}</b> — ${escapeHtml(f.detail || '')}</li>`).join('')}</ul>`
+      : `<p style="margin:.4rem 0;color:var(--muted)">Nothing tripped the checks. (Matching cells aren’t <em>proven</em> correct, but none are proven suspect.)</p>`;
+    box.innerHTML = `<p class="status-line" style="margin:0 0 .2rem">${meta}</p>${download}${flagHtml}`;
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   async function loadExtractions() {
@@ -44,8 +68,10 @@
     const items = (r && r.extractions) || [];
     box.innerHTML = items.length
       ? items.map((it) => `<div class="item">
-          <div class="when">${it.created_at ? new Date(it.created_at).toLocaleString() : ''}${it.fileType ? ' · ' + escapeHtml(it.fileType) : ''}</div>
-          <div>${escapeHtml(it.filename || '(untitled)')}</div>
+          <div class="when">${it.created_at ? new Date(it.created_at).toLocaleString() : ''}${it.fileType ? ' · ' + escapeHtml(it.fileType) : ''}${it.rowCount != null ? ' · ' + it.rowCount + ' rows' : ''}</div>
+          <div>${escapeHtml(it.filename || '(untitled)')}
+            <a href="api/extractions/${encodeURIComponent(it.id)}/xlsx" download style="margin-left:.5rem;font-size:.85rem;color:var(--terracotta);text-decoration:none">⬇ Excel</a>
+          </div>
           ${it.flagCount ? `<div class="flags">${it.flagCount} cell${it.flagCount === 1 ? '' : 's'} flagged to check</div>` : ''}
         </div>`).join('')
       : '<span class="empty">No extractions yet. Upload a PDF above to get started.</span>';

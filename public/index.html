@@ -48,6 +48,11 @@
     .status-line { color:var(--muted); font-size:0.9rem; }
     .note { background:#fbf3ea; border:1px solid #ecd9c2; border-radius:8px; padding:0.85rem 1rem; font-size:0.85rem; color:#5a4a2a; }
     .note strong { color:#3a2f18; }
+    .flaglist { margin:0.3rem 0 0; padding-left:1.1rem; font-size:0.88rem; color:var(--fg); }
+    .flaglist li { margin:0.25rem 0; }
+    .sev { display:inline-block; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; padding:1px 6px; border-radius:4px; margin-right:0.4rem; background:#eee; color:#555; }
+    .sev-high { background:#f6d6d6; color:#8a2c2c; }
+    .sev-medium { background:#f3e1b8; color:#7a5a12; }
     a#key-settings { color:#e7e0d8 !important; }
   </style>
 </head>
@@ -82,6 +87,11 @@
         <button class="primary" id="extract-btn">Extract</button>
         <span id="extract-status" class="status-line" style="margin-left:0.75rem"></span>
       </div>
+    </div>
+
+    <div class="card" id="result-card" style="display:none">
+      <h2>Your extraction</h2>
+      <div id="result"></div>
     </div>
 
     <div class="card" style="padding:0;border:none;background:none;margin-bottom:16px">

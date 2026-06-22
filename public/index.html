@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Extract PDF — Be AI Ready</title>
+  <!-- This is a BE AI READY Node. It carries its OWN BAIR chrome (below), so it does
+       NOT opt into the GROUNDED newsroom chrome: no grounded-chrome.* tags locally,
+       and { nav:false } tells the hosted /nodes/chrome.js to skip the newsroom nav.
+       The terracotta family bubbles + "run locally" footer still appear hosted. -->
+  <script>window.GROUNDED_CHROME = { nav: false };</script>
+  <style>
+    :root {
+      --bg:#faf8f4; --fg:#1c1b1a; --muted:#5a534c; --line:#e7e0d8; --card:#fff;
+      --terracotta:#c75b39; --terracotta-dk:#a8543a; --charcoal:#1c1b1a;
+      --flag:#8a2c2c; --warn:#9a6a12;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-size:15px; line-height:1.55; }
+
+    /* BAIR header — charcoal gradient + terracotta accent line, matching the rest of Be AI Ready. */
+    header.bair { background:linear-gradient(180deg,#1c1b1a 0%,#232120 100%); border-bottom:2px solid var(--terracotta); position:sticky; top:0; z-index:50; }
+    header.bair .row { max-width:760px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    header.bair .brand { display:flex; flex-direction:column; line-height:1.15; text-decoration:none; }
+    header.bair .brand b { font-size:19px; font-weight:800; color:#fff; letter-spacing:-0.01em; }
+    header.bair .brand span { font-size:10.5px; color:var(--terracotta); font-weight:600; }
+    header.bair nav { display:flex; gap:6px; align-items:center; }
+    header.bair nav a { color:#e7e0d8; text-decoration:none; font-size:13px; font-weight:500; padding:7px 11px; border-radius:6px; }
+    header.bair nav a.back { border:1px solid rgba(231,224,216,0.35); }
+    header.bair nav a:hover { color:#fff; }
+
+    main { padding:28px 24px 60px; max-width:760px; margin:0 auto; }
+    h1.title { font-size:26px; font-weight:800; margin:0 0 6px; letter-spacing:-0.02em; }
+    p.lede { color:var(--muted); font-size:15px; margin:0 0 24px; max-width:620px; line-height:1.6; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:16px; }
+    .card h2 { margin:0 0 0.5rem; font-size:1.05rem; font-weight:700; }
+    p.help { margin:0.25rem 0 1rem; color:var(--muted); font-size:0.9rem; }
+    label { display:block; margin:0.75rem 0 0.35rem; font-weight:600; font-size:0.9rem; }
+    input[type=file] { width:100%; padding:0.7rem 0.8rem; border:1px dashed var(--line); border-radius:8px; font-family:inherit; font-size:0.95rem; background:var(--bg); color:var(--fg); }
+    button.primary { background:var(--terracotta); color:#fff; border:none; padding:0.65rem 1.2rem; border-radius:8px; font-family:inherit; font-size:0.95rem; cursor:pointer; font-weight:600; }
+    button.primary:hover { background:var(--terracotta-dk); }
+    button.primary:disabled { background:var(--muted); cursor:not-allowed; }
+    .item { padding:0.7rem 0; border-bottom:1px solid var(--line); }
+    .item:last-child { border-bottom:none; }
+    .item .when { font-size:0.75rem; color:var(--muted); }
+    .item .flags { font-size:0.8rem; color:var(--flag); }
+    .empty { color:var(--muted); font-style:italic; }
+    .status-line { color:var(--muted); font-size:0.9rem; }
+    .note { background:#fbf3ea; border:1px solid #ecd9c2; border-radius:8px; padding:0.85rem 1rem; font-size:0.85rem; color:#5a4a2a; }
+    .note strong { color:#3a2f18; }
+    a#key-settings { color:#e7e0d8 !important; }
+  </style>
+</head>
+<body>
+
+<div id="app" style="display:none">
+  <header class="bair">
+    <div class="row">
+      <a class="brand" href="https://beaiready.developai.co.za">
+        <b>Extract PDF</b>
+        <span>Be AI Ready · by Develop&nbsp;AI</span>
+      </a>
+      <nav>
+        <a href="#" id="key-settings">API key</a>
+        <a class="back" href="https://beaiready.developai.co.za/nodes">‹ Be AI Ready</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <h1 class="title">Extract a document</h1>
+    <p class="lede">Drop in a PDF — an invoice, a bill of quantities, a statement, a table. The data is read
+      <strong>in code</strong>, checked against itself twice, and you get back an Excel file with the few cells
+      worth opening the original for. Nothing is ever guessed.</p>
+
+    <div class="card">
+      <h2>Upload</h2>
+      <p class="help">Your API key is yours — kept securely for your account and used only to run your extractions.</p>
+      <label for="pdf">PDF to extract</label>
+      <input type="file" id="pdf" accept="application/pdf,.pdf" />
+      <div style="margin-top:0.85rem">
+        <button class="primary" id="extract-btn">Extract</button>
+        <span id="extract-status" class="status-line" style="margin-left:0.75rem"></span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;border:none;background:none;margin-bottom:16px">
+      <div class="note" id="security-note">
+        <strong>Before you upload:</strong> this method protects <em>accuracy</em>, not confidentiality.
+        Public, redacted, or paid “no-training” documents are fine. Confidential client pricing, unpublished
+        bills of quantities, or NDA-marked files — stop and think about where the file and the AI inference go.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Past extractions</h2>
+      <div id="items"><span class="status-line">Loading…</span></div>
+    </div>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

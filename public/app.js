@@ -45,19 +45,30 @@
     const card = $('#result-card'); const box = $('#result');
     if (!card || !box) return;
     const flags = r.flags || [];
+    const noRows = (r.rowCount || 0) === 0;
     const meta = [escapeHtml(filename || 'document'),
       r.fileType ? (r.fileType === 'scan' ? 'scanned (highest-risk)' : 'text') : '',
       (r.rowCount != null ? r.rowCount + ' rows' : ''),
       r.needKey ? 'no AI key — basic code extraction' : ''].filter(Boolean).join(' · ');
-    const download = r.xlsxUrl
-      ? `<a class="primary" id="dl-xlsx" href="${r.xlsxUrl}" download style="display:inline-block;text-decoration:none;margin:2px 0 10px">⬇ Download Excel</a>`
-      : '';
-    const flagHtml = flags.length
-      ? `<p style="margin:.4rem 0 .3rem"><strong>${flags.length} cell${flags.length === 1 ? '' : 's'} to check</strong> — open the original only for these:</p>
-         <ul class="flaglist">${flags.slice(0, 50).map((f) =>
-            `<li><span class="sev sev-${escapeHtml(f.severity || '')}">${escapeHtml(String(f.kind || '').replace(/_/g, ' '))}</span> <b>${escapeHtml(f.where || '')}</b> — ${escapeHtml(f.detail || '')}</li>`).join('')}</ul>`
-      : `<p style="margin:.4rem 0;color:var(--muted)">Nothing tripped the checks. (Matching cells aren’t <em>proven</em> correct, but none are proven suspect.)</p>`;
-    box.innerHTML = `<p class="status-line" style="margin:0 0 .2rem">${meta}</p>${download}${flagHtml}`;
+    const notesHtml = (r.notes || []).length
+      ? `<div class="note" style="margin:.2rem 0 .8rem">${r.notes.map((n) => escapeHtml(n)).join('<br>')}</div>` : '';
+    let body;
+    if (noRows) {
+      // Honest empty: don't pretend the checks "passed" on an empty sheet.
+      body = `${notesHtml}<p style="margin:.2rem 0 .5rem"><strong>No rows were read from this document.</strong></p>
+        <p style="margin:0 0 .6rem;color:var(--muted);font-size:.9rem">The Excel would be empty. If this is a clear table, try a single-table page or a sharper scan.</p>
+        ${r.xlsxUrl ? `<a href="${r.xlsxUrl}" download style="font-size:.85rem;color:var(--muted);text-decoration:none">⬇ download the (empty) Excel anyway</a>` : ''}`;
+    } else {
+      const download = r.xlsxUrl
+        ? `<a class="primary" href="${r.xlsxUrl}" download style="display:inline-block;text-decoration:none;margin:2px 0 10px">⬇ Download Excel</a>` : '';
+      const flagHtml = flags.length
+        ? `<p style="margin:.4rem 0 .3rem"><strong>${flags.length} cell${flags.length === 1 ? '' : 's'} to check</strong> — open the original only for these:</p>
+           <ul class="flaglist">${flags.slice(0, 50).map((f) =>
+              `<li><span class="sev sev-${escapeHtml(f.severity || '')}">${escapeHtml(String(f.kind || '').replace(/_/g, ' '))}</span> <b>${escapeHtml(f.where || '')}</b> — ${escapeHtml(f.detail || '')}</li>`).join('')}</ul>`
+        : `<p style="margin:.4rem 0;color:var(--muted)">Nothing tripped the checks. (Matching cells aren’t <em>proven</em> correct, but none are proven suspect.)</p>`;
+      body = `${notesHtml}${download}${flagHtml}`;
+    }
+    box.innerHTML = `<p class="status-line" style="margin:0 0 .2rem">${meta}</p>${body}`;
     card.style.display = 'block';
     card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
